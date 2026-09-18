@@ -133,17 +133,19 @@ class TestProviderIntegration:
         assert narrative.provider == "stub"
         assert stub_provider.calls
 
-    def test_a_failing_provider_degrades_to_the_template(self, result: AnalysisResult) -> None:
+    def test_a_failing_provider_degrades_to_the_template(
+        self, result: AnalysisResult, stub_provider_class: type
+    ) -> None:
         """The numbers are the product; prose is a layer over them."""
-        from tests.conftest import StubProvider
-
-        narrative = narrative_module.generate_narrative(result, StubProvider(fail=True))
+        narrative = narrative_module.generate_narrative(result, stub_provider_class(fail=True))
         assert narrative.provider == "template"
 
-    def test_garbage_from_a_provider_degrades_to_the_template(self, result: AnalysisResult) -> None:
-        from tests.conftest import StubProvider
-
-        narrative = narrative_module.generate_narrative(result, StubProvider(text="not json"))
+    def test_garbage_from_a_provider_degrades_to_the_template(
+        self, result: AnalysisResult, stub_provider_class: type
+    ) -> None:
+        narrative = narrative_module.generate_narrative(
+            result, stub_provider_class(text="not json")
+        )
         assert narrative.provider == "template"
 
     def test_the_prompt_carries_only_computed_figures(self, result: AnalysisResult) -> None:
