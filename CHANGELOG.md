@@ -12,10 +12,13 @@ when no function signature moves, because it changes what a stakeholder reads.
 
 ### Fixed
 
-- **CI was red on `main` immediately after the 1.0.0 merge.** Five independent
+- **CI was red on `main` immediately after the 1.0.0 merge.** Six independent
   causes, each fixed at its root rather than worked around — the fifth was
   masked by the fourth (a failed step skips the rest of its job by default),
-  so it only surfaced once the pip-audit fix let the job actually reach it:
+  so it only surfaced once the pip-audit fix let the job actually reach it;
+  the sixth was present in the same first run but in a different job
+  (`Tests (windows-latest, ...)`, unaffected by anything in `security`) and
+  wasn't looked at until the other five were already green:
   - Two tests imported a test helper with `from tests.conftest import
     StubProvider`, which only resolves when the current directory happens to
     be on `sys.path` (true under `python -m pytest`, false under the `pytest`
@@ -46,6 +49,19 @@ when no function signature moves, because it changes what a stakeholder reads.
     head commit; the checkout step's default `fetch-depth: 1` fetches only
     the head commit itself, so that parent doesn't exist to resolve. Set
     `fetch-depth: 0` on the security job's checkout.
+  - Two tests failed only on `windows-latest`. `JobManager.purge_expired()`
+    compared a job's `finished_at` against a `cutoff` computed strictly after
+    it with `<`; with `retention_seconds=0` and a near-instant job, both
+    timestamps can quantize to the same value, so a job that had, in fact,
+    just finished was not yet "older than" a cutoff equal to it. Changed to
+    `<=`, which is what a zero-second retention window actually means at the
+    boundary. Separately, `FileSessionStore.save()`'s `path.chmod(0o600)` —
+    real, load-bearing hardening on the POSIX systems this ships to run on —
+    has nothing to restrict on Windows/NTFS: `os.chmod` there can only toggle
+    the read-only attribute, so `st_mode` reports a fixed synthesized value no
+    matter what mode was requested. The assertion checked a guarantee Windows
+    cannot make or be made to prove; it is now skipped there rather than
+    weakened everywhere else.
 
 ## [1.0.0] - 2026-09-18
 

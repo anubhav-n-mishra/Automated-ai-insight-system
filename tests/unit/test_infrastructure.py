@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import sys
 import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -195,6 +196,12 @@ class TestFileSessionStore:
         # Still resolvable from disk even once evicted from memory.
         assert store.load(secrets_minted[0].session_id) is not None
 
+    @pytest.mark.skipif(
+        sys.platform == "win32",
+        reason="os.chmod on Windows/NTFS can only toggle the read-only attribute, "
+        "not POSIX group/other bits, so this guarantee is neither enforced nor "
+        "checkable there.",
+    )
     def test_stored_records_are_not_world_readable(self, tmp_path: Path) -> None:
         store = FileSessionStore(tmp_path)
         secret = SessionSecret.mint()

@@ -190,10 +190,14 @@ class JobManager:
         """Forget terminal jobs older than the retention window."""
         cutoff = datetime.now(timezone.utc) - timedelta(seconds=self._retention)
         with self._lock:
+            # <=, not <: cutoff is computed strictly after finished_at is set, so
+            # finished_at == cutoff only happens when the clock's resolution is
+            # coarser than the gap between the two — a job that just finished
+            # under retention_seconds=0 still needs to count as expired then.
             stale = [
                 job_id
                 for job_id, job in self._jobs.items()
-                if job.status.is_terminal and (job.finished_at or job.created_at) < cutoff
+                if job.status.is_terminal and (job.finished_at or job.created_at) <= cutoff
             ]
             for job_id in stale:
                 del self._jobs[job_id]
