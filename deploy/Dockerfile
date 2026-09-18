@@ -9,7 +9,7 @@
 # reason to be able to modify its own code.
 
 # --------------------------------------------------------------- builder ----
-FROM python:3.12-slim-bookworm AS builder
+FROM python:3.14-slim-bookworm AS builder
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -34,7 +34,7 @@ RUN pip install --upgrade pip setuptools wheel \
     && pip install ".${EXTRAS}"
 
 # --------------------------------------------------------------- runtime ----
-FROM python:3.12-slim-bookworm AS runtime
+FROM python:3.14-slim-bookworm AS runtime
 
 ARG VERSION=dev
 ARG VCS_REF=unknown
