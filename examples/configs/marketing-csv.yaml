@@ -1,0 +1,56 @@
+# Insight Engine specification: paid media, week over week.
+#
+# Run it with:
+#   insight-engine run examples/configs/marketing-csv.yaml
+#
+# Every field is validated before a single row is read, so a typo fails in
+# milliseconds rather than halfway through a report.
+version: 1
+
+dataset:
+  primary_source: clicks
+  sources:
+    clicks:
+      type: csv
+      # Relative to this file's directory, or to --base-path.
+      path: ../data/marketing_clicks.csv
+      date_column: date
+      dimensions: [campaign, geo]
+      metrics:
+        - name: impressions
+        - name: clicks
+        - name: spend
+          unit: currency
+
+# Derived metrics are expressions over *aggregated* metrics. Summing per-row
+# ratios is not the period ratio, so they are computed after aggregation.
+derived_metrics:
+  - name: ctr
+    expression: clicks / impressions
+    label: Click-through rate
+    unit: percent
+
+  - name: cpc
+    expression: spend / clicks
+    label: Cost per click
+    unit: currency
+    # Cost going up is bad. Reports colour movements by intent, not by sign.
+    higher_is_better: false
+
+report:
+  title: Paid media, week over week
+  date_column: date
+
+  comparison:
+    current_start: 2025-11-24
+    current_end: 2025-11-30
+    previous_start: 2025-11-17
+    previous_end: 2025-11-23
+
+  dimensions: [campaign, geo]
+
+  # Most important first. Drives the ranking weight.
+  kpi_priority: [spend, clicks, ctr, cpc, impressions]
+
+  top_insights: 20
+  include_drivers: true

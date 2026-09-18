@@ -1,0 +1,575 @@
+{
+  "$defs": {
+    "ComparisonSpec": {
+      "additionalProperties": false,
+      "description": "The two windows being compared.",
+      "properties": {
+        "current_start": {
+          "format": "date",
+          "title": "Current Start",
+          "type": "string"
+        },
+        "current_end": {
+          "format": "date",
+          "title": "Current End",
+          "type": "string"
+        },
+        "previous_start": {
+          "format": "date",
+          "title": "Previous Start",
+          "type": "string"
+        },
+        "previous_end": {
+          "format": "date",
+          "title": "Previous End",
+          "type": "string"
+        }
+      },
+      "required": [
+        "current_start",
+        "current_end",
+        "previous_start",
+        "previous_end"
+      ],
+      "title": "ComparisonSpec",
+      "type": "object"
+    },
+    "CsvSourceSpec": {
+      "additionalProperties": false,
+      "description": "A delimited text file. The delimiter is sniffed when not given.",
+      "properties": {
+        "date_column": {
+          "description": "Column carrying the event date or timestamp.",
+          "title": "Date Column",
+          "type": "string"
+        },
+        "dimensions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Dimensions",
+          "type": "array"
+        },
+        "metrics": {
+          "items": {
+            "$ref": "#/$defs/MetricSpec"
+          },
+          "title": "Metrics",
+          "type": "array"
+        },
+        "join_keys": {
+          "description": "Columns used to join this source onto the primary source.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Join Keys",
+          "type": "array"
+        },
+        "type": {
+          "const": "csv",
+          "default": "csv",
+          "title": "Type",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "delimiter": {
+          "anyOf": [
+            {
+              "maxLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Delimiter"
+        },
+        "encoding": {
+          "default": "utf-8",
+          "title": "Encoding",
+          "type": "string"
+        },
+        "null_values": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Null Values",
+          "type": "array"
+        }
+      },
+      "required": [
+        "date_column",
+        "path"
+      ],
+      "title": "CsvSourceSpec",
+      "type": "object"
+    },
+    "DatabaseSourceSpec": {
+      "additionalProperties": false,
+      "description": "A table read through a structured connection definition.",
+      "properties": {
+        "date_column": {
+          "description": "Column carrying the event date or timestamp.",
+          "title": "Date Column",
+          "type": "string"
+        },
+        "dimensions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Dimensions",
+          "type": "array"
+        },
+        "metrics": {
+          "items": {
+            "$ref": "#/$defs/MetricSpec"
+          },
+          "title": "Metrics",
+          "type": "array"
+        },
+        "join_keys": {
+          "description": "Columns used to join this source onto the primary source.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Join Keys",
+          "type": "array"
+        },
+        "type": {
+          "const": "database",
+          "default": "database",
+          "title": "Type",
+          "type": "string"
+        },
+        "driver": {
+          "enum": [
+            "postgresql",
+            "mysql",
+            "sqlite",
+            "mssql"
+          ],
+          "title": "Driver",
+          "type": "string"
+        },
+        "host": {
+          "default": "localhost",
+          "title": "Host",
+          "type": "string"
+        },
+        "port": {
+          "anyOf": [
+            {
+              "maximum": 65535,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Port"
+        },
+        "database": {
+          "title": "Database",
+          "type": "string"
+        },
+        "schema_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Schema Name"
+        },
+        "table": {
+          "title": "Table",
+          "type": "string"
+        },
+        "username": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Username"
+        },
+        "password": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Use ``${ENV_VAR}``; literal secrets are discouraged.",
+          "title": "Password"
+        }
+      },
+      "required": [
+        "date_column",
+        "driver",
+        "database",
+        "table"
+      ],
+      "title": "DatabaseSourceSpec",
+      "type": "object"
+    },
+    "DatasetSpec": {
+      "additionalProperties": false,
+      "description": "The set of sources and which one anchors the join.",
+      "properties": {
+        "primary_source": {
+          "title": "Primary Source",
+          "type": "string"
+        },
+        "sources": {
+          "additionalProperties": {
+            "discriminator": {
+              "mapping": {
+                "csv": "#/$defs/CsvSourceSpec",
+                "database": "#/$defs/DatabaseSourceSpec",
+                "sql": "#/$defs/SqlSourceSpec"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/CsvSourceSpec"
+              },
+              {
+                "$ref": "#/$defs/SqlSourceSpec"
+              },
+              {
+                "$ref": "#/$defs/DatabaseSourceSpec"
+              }
+            ]
+          },
+          "minProperties": 1,
+          "title": "Sources",
+          "type": "object"
+        }
+      },
+      "required": [
+        "primary_source",
+        "sources"
+      ],
+      "title": "DatasetSpec",
+      "type": "object"
+    },
+    "DerivedMetricSpec": {
+      "additionalProperties": false,
+      "description": "A metric computed from other metrics *after* aggregation.\n\n``expression`` is evaluated by :mod:`insight_engine.engine.formula`, which\nparses a restricted arithmetic grammar rather than calling :func:`eval`.",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "expression": {
+          "description": "e.g. ``clicks / impressions`` or ``(a + b) / 2``",
+          "title": "Expression",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "unit": {
+          "default": "ratio",
+          "enum": [
+            "count",
+            "currency",
+            "percent",
+            "ratio",
+            "duration_seconds"
+          ],
+          "title": "Unit",
+          "type": "string"
+        },
+        "format_precision": {
+          "default": 4,
+          "maximum": 10,
+          "minimum": 0,
+          "title": "Format Precision",
+          "type": "integer"
+        },
+        "higher_is_better": {
+          "default": true,
+          "title": "Higher Is Better",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "expression"
+      ],
+      "title": "DerivedMetricSpec",
+      "type": "object"
+    },
+    "MetricSpec": {
+      "additionalProperties": false,
+      "description": "A measure read straight from the data and reduced with one aggregation.",
+      "properties": {
+        "name": {
+          "description": "Name the metric is referred to by everywhere else.",
+          "title": "Name",
+          "type": "string"
+        },
+        "column": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Source column. Defaults to ``name``.",
+          "title": "Column"
+        },
+        "aggregation": {
+          "default": "sum",
+          "enum": [
+            "sum",
+            "avg",
+            "min",
+            "max",
+            "count",
+            "count_distinct",
+            "median"
+          ],
+          "title": "Aggregation",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Human-facing name for reports.",
+          "title": "Label"
+        },
+        "unit": {
+          "default": "count",
+          "enum": [
+            "count",
+            "currency",
+            "percent",
+            "ratio",
+            "duration_seconds"
+          ],
+          "title": "Unit",
+          "type": "string"
+        },
+        "format_precision": {
+          "default": 2,
+          "maximum": 10,
+          "minimum": 0,
+          "title": "Format Precision",
+          "type": "integer"
+        },
+        "higher_is_better": {
+          "default": true,
+          "description": "Direction of goodness. Cost per click going up is bad; revenue going up is good. Reports colour movements by this, not by sign.",
+          "title": "Higher Is Better",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "MetricSpec",
+      "type": "object"
+    },
+    "ReportSpec": {
+      "additionalProperties": false,
+      "description": "What to analyse and how much of it to surface.",
+      "properties": {
+        "title": {
+          "default": "Performance Analysis",
+          "maxLength": 200,
+          "title": "Title",
+          "type": "string"
+        },
+        "date_column": {
+          "title": "Date Column",
+          "type": "string"
+        },
+        "comparison": {
+          "$ref": "#/$defs/ComparisonSpec"
+        },
+        "dimensions": {
+          "description": "Segments to break the movement down by. Empty analyses the total only.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Dimensions",
+          "type": "array"
+        },
+        "kpi_priority": {
+          "description": "Metric names, most important first. Drives ranking weight.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Kpi Priority",
+          "type": "array"
+        },
+        "top_insights": {
+          "default": 20,
+          "maximum": 500,
+          "minimum": 1,
+          "title": "Top Insights",
+          "type": "integer"
+        },
+        "min_impact_score": {
+          "default": 0.0,
+          "minimum": 0.0,
+          "title": "Min Impact Score",
+          "type": "number"
+        },
+        "min_segment_share": {
+          "default": 0.001,
+          "description": "Drop segments contributing less than this share of a metric before ranking, so a rounding-error segment with a 900% swing cannot outrank a real one.",
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Min Segment Share",
+          "type": "number"
+        },
+        "include_drivers": {
+          "default": true,
+          "description": "Attribute each total movement to its largest segments.",
+          "title": "Include Drivers",
+          "type": "boolean"
+        },
+        "max_drivers_per_metric": {
+          "default": 5,
+          "maximum": 50,
+          "minimum": 1,
+          "title": "Max Drivers Per Metric",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "date_column",
+        "comparison"
+      ],
+      "title": "ReportSpec",
+      "type": "object"
+    },
+    "SqlSourceSpec": {
+      "additionalProperties": false,
+      "description": "An arbitrary read-only query against a SQLAlchemy-style URL.",
+      "properties": {
+        "date_column": {
+          "description": "Column carrying the event date or timestamp.",
+          "title": "Date Column",
+          "type": "string"
+        },
+        "dimensions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Dimensions",
+          "type": "array"
+        },
+        "metrics": {
+          "items": {
+            "$ref": "#/$defs/MetricSpec"
+          },
+          "title": "Metrics",
+          "type": "array"
+        },
+        "join_keys": {
+          "description": "Columns used to join this source onto the primary source.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Join Keys",
+          "type": "array"
+        },
+        "type": {
+          "const": "sql",
+          "default": "sql",
+          "title": "Type",
+          "type": "string"
+        },
+        "connection_string": {
+          "description": "SQLAlchemy URL. Prefer ``${ENV_VAR}`` placeholders over literal credentials so the spec can live in version control.",
+          "title": "Connection String",
+          "type": "string"
+        },
+        "query": {
+          "title": "Query",
+          "type": "string"
+        }
+      },
+      "required": [
+        "date_column",
+        "connection_string",
+        "query"
+      ],
+      "title": "SqlSourceSpec",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Root document. This is what a user writes and what the engine consumes.",
+  "properties": {
+    "version": {
+      "default": 1,
+      "maximum": 1,
+      "minimum": 1,
+      "title": "Version",
+      "type": "integer"
+    },
+    "dataset": {
+      "$ref": "#/$defs/DatasetSpec"
+    },
+    "derived_metrics": {
+      "items": {
+        "$ref": "#/$defs/DerivedMetricSpec"
+      },
+      "title": "Derived Metrics",
+      "type": "array"
+    },
+    "report": {
+      "$ref": "#/$defs/ReportSpec"
+    }
+  },
+  "required": [
+    "dataset",
+    "report"
+  ],
+  "title": "Insight Engine analysis specification v1",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/anubhav-n-mishra/Automated-ai-insight-system/main/schemas/analysis-spec-v1.json"
+}

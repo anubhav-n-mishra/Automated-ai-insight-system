@@ -1,0 +1,50 @@
+# A second worked example over a historical customer extract, showing
+# non-additive aggregations and a semicolon-delimited source.
+version: 1
+
+dataset:
+  primary_source: customers
+  sources:
+    customers:
+      type: csv
+      path: ../data/customer_campaign.csv
+      delimiter: ";"
+      date_column: Dt_Customer
+      dimensions: [Education, Marital_Status]
+      metrics:
+        - name: MntWines
+          label: Wine spend
+          unit: currency
+        - name: MntMeatProducts
+          label: Meat spend
+          unit: currency
+        - name: NumWebPurchases
+          label: Web purchases
+        - name: NumWebVisitsMonth
+          label: Web visits
+        - name: Income
+          label: Average income
+          # An average, not a sum: adding household incomes together is
+          # meaningless, and every metric declares how it reduces.
+          aggregation: avg
+          unit: currency
+        - name: ID
+          label: Customers
+          aggregation: count_distinct
+
+derived_metrics:
+  - name: spend_per_visit
+    expression: (MntWines + MntMeatProducts) / NumWebVisitsMonth
+    label: Spend per web visit
+    unit: currency
+
+report:
+  title: Customer campaign response
+  date_column: Dt_Customer
+  comparison:
+    current_start: 2014-01-01
+    current_end: 2014-06-29
+    previous_start: 2013-07-01
+    previous_end: 2013-12-31
+  dimensions: [Education, Marital_Status]
+  kpi_priority: [MntWines, MntMeatProducts, spend_per_visit, NumWebPurchases, Income, ID]

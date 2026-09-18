@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="Turn period-over-period metric movements into ranked, explainable insights, a deck, a dashboard and an audio briefing.">
+  <meta name="color-scheme" content="light dark">
+  <title>Insight Engine</title>
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+
+  <div class="page">
+    <header class="site-header">
+      <div class="brand">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+          <rect x="2" y="13" width="4.5" height="8" rx="1.2" fill="currentColor" opacity="0.55"></rect>
+          <rect x="9.75" y="8" width="4.5" height="13" rx="1.2" fill="currentColor" opacity="0.78"></rect>
+          <rect x="17.5" y="3" width="4.5" height="18" rx="1.2" fill="currentColor"></rect>
+        </svg>
+        <div>
+          <h1>Insight Engine</h1>
+          <p class="tagline">Explainable period-over-period reporting</p>
+        </div>
+      </div>
+      <div class="spacer"></div>
+      <div class="header-actions">
+        <button type="button" class="btn btn-ghost btn-sm" id="theme-toggle" aria-pressed="false">
+          <span id="theme-label">Dark theme</span>
+        </button>
+        <a class="btn btn-ghost btn-sm" href="/docs">API docs</a>
+      </div>
+    </header>
+
+    <main id="main" class="layout">
+      <div>
+        <section class="card" aria-labelledby="build-heading">
+          <h2 id="build-heading">Build a report</h2>
+          <p class="tagline">
+            Upload a dataset, confirm what the engine inferred, and generate a deck,
+            a shareable dashboard and an audio briefing.
+          </p>
+
+          <div class="tablist" role="tablist" aria-label="Data source">
+            <button class="tab" role="tab" id="tab-upload" aria-controls="panel-upload" aria-selected="true" type="button">Upload a file</button>
+            <button class="tab" role="tab" id="tab-sample" aria-controls="panel-sample" aria-selected="false" tabindex="-1" type="button">Sample data</button>
+            <button class="tab" role="tab" id="tab-spec" aria-controls="panel-spec" aria-selected="false" tabindex="-1" type="button">Specification</button>
+          </div>
+
+          <!-- Upload ------------------------------------------------------- -->
+          <div class="tabpanel" role="tabpanel" id="panel-upload" aria-labelledby="tab-upload" tabindex="0">
+            <button type="button" class="dropzone" id="dropzone" aria-describedby="dropzone-help">
+              <strong>Choose a CSV or TSV file</strong>
+              <span class="hint">or drag it here &middot; up to 64&nbsp;MB</span>
+              <span class="filename" id="dropzone-filename"></span>
+            </button>
+            <p id="dropzone-help" class="help" style="margin-top:8px;color:var(--text-muted);font-size:0.83rem;">
+              Column roles and the date range are inferred on this server. Your data is not sent to a model provider.
+            </p>
+            <input type="file" id="file-input" accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values" class="visually-hidden">
+
+            <div id="profile-summary" hidden></div>
+
+            <form id="config-form" hidden novalidate>
+              <h3>Confirm the analysis</h3>
+
+              <div class="field">
+                <label for="report-title">Report title</label>
+                <input type="text" id="report-title" name="title" maxlength="200" value="Performance Analysis">
+              </div>
+
+              <div class="field">
+                <label for="date-column">Date column</label>
+                <select id="date-column" name="date_column" required></select>
+                <p class="help" id="date-range-help"></p>
+              </div>
+
+              <fieldset>
+                <legend>Dimensions <span class="tag" id="dimension-count">0 selected</span></legend>
+                <div class="chip-tools">
+                  <label class="visually-hidden" for="dimension-filter">Filter dimensions</label>
+                  <input type="text" id="dimension-filter" placeholder="Filter columns…" autocomplete="off">
+                  <button type="button" class="btn btn-ghost btn-sm" data-clear="dimensions">Clear</button>
+                </div>
+                <div class="chip-group" id="dimension-chips" role="group" aria-label="Dimension columns"></div>
+                <p class="help">Segments the movement is broken down by. Pick one or two to start.</p>
+              </fieldset>
+
+              <fieldset>
+                <legend>Metrics <span class="tag" id="metric-count">0 selected</span></legend>
+                <div class="chip-tools">
+                  <label class="visually-hidden" for="metric-filter">Filter metrics</label>
+                  <input type="text" id="metric-filter" placeholder="Filter columns…" autocomplete="off">
+                  <button type="button" class="btn btn-ghost btn-sm" data-clear="metrics">Clear</button>
+                </div>
+                <div class="chip-group" id="metric-chips" role="group" aria-label="Metric columns"></div>
+                <p class="help">Measures to aggregate. A column cannot be both a dimension and a metric.</p>
+              </fieldset>
+
+              <fieldset>
+                <legend>Current period</legend>
+                <div class="field-row">
+                  <div class="field">
+                    <label for="current-start">Start</label>
+                    <input type="date" id="current-start" required>
+                  </div>
+                  <div class="field">
+                    <label for="current-end">End</label>
+                    <input type="date" id="current-end" required>
+                  </div>
+                </div>
+              </fieldset>
+
+              <fieldset>
+                <legend>Previous period</legend>
+                <div class="field-row">
+                  <div class="field">
+                    <label for="previous-start">Start</label>
+                    <input type="date" id="previous-start" required>
+                  </div>
+                  <div class="field">
+                    <label for="previous-end">End</label>
+                    <input type="date" id="previous-end" required>
+                  </div>
+                </div>
+                <p class="help" id="period-help">
+                  The two periods must not overlap. Equal lengths make the comparison meaningful.
+                </p>
+              </fieldset>
+
+              <div id="form-errors" role="alert" aria-live="assertive"></div>
+
+              <div class="btn-row">
+                <button type="submit" class="btn btn-primary" id="generate-btn">
+                  <span id="generate-label">Generate report</span>
+                </button>
+                <button type="button" class="btn btn-ghost" id="cancel-btn" hidden>Cancel</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Sample ------------------------------------------------------- -->
+          <div class="tabpanel" role="tabpanel" id="panel-sample" aria-labelledby="tab-sample" tabindex="0" hidden>
+            <p>
+              A seven-day paid-media comparison across three campaigns and two regions.
+              It exercises the whole pipeline without any setup.
+            </p>
+            <pre class="code-block" id="sample-spec" tabindex="0" aria-label="Sample specification"></pre>
+            <div class="btn-row">
+              <button type="button" class="btn btn-primary" id="sample-btn">Run the sample</button>
+            </div>
+          </div>
+
+          <!-- Spec --------------------------------------------------------- -->
+          <div class="tabpanel" role="tabpanel" id="panel-spec" aria-labelledby="tab-spec" tabindex="0" hidden>
+            <p>
+              Paste a specification document. The same schema the CLI reads, so a report
+              can live in version control next to the data it describes.
+            </p>
+            <div class="field">
+              <label for="spec-input">Specification (YAML or JSON)</label>
+              <textarea id="spec-input" spellcheck="false" aria-describedby="spec-help"></textarea>
+              <p class="help" id="spec-help">
+                A specification that reads a CSV needs a file: upload one first, then run it here.
+              </p>
+            </div>
+            <div class="btn-row">
+              <button type="button" class="btn btn-primary" id="spec-btn">Run the specification</button>
+            </div>
+          </div>
+
+          <!-- Progress ----------------------------------------------------- -->
+          <div class="progress" id="progress" hidden>
+            <div class="progress-track">
+              <div class="progress-fill" id="progress-fill" role="progressbar"
+                   aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"
+                   aria-labelledby="progress-caption"></div>
+            </div>
+            <p id="progress-caption" class="visually-hidden">Report generation progress</p>
+            <ul class="stage-list" id="stage-list" aria-live="polite"></ul>
+          </div>
+
+          <div id="result" aria-live="polite"></div>
+        </section>
+      </div>
+
+      <aside>
+        <section class="card" aria-labelledby="how-heading">
+          <h2 id="how-heading">How it works</h2>
+          <ol style="padding-left:20px;margin:0;font-size:0.9rem;color:var(--text-muted);display:grid;gap:8px;">
+            <li><strong style="color:var(--text)">Profile.</strong> Column roles and a date range are inferred locally from the file you upload.</li>
+            <li><strong style="color:var(--text)">Aggregate.</strong> Each metric is reduced with its own aggregation; ratios are computed after aggregation, never averaged across rows.</li>
+            <li><strong style="color:var(--text)">Rank.</strong> Segments are scored by their share of the total movement, weighted by KPI priority and damped by materiality.</li>
+            <li><strong style="color:var(--text)">Attribute.</strong> Each total movement is decomposed across the segments that caused it, with the unexplained remainder stated.</li>
+            <li><strong style="color:var(--text)">Render.</strong> A deck, a tokenised dashboard and an audio briefing, all from the same numbers.</li>
+          </ol>
+        </section>
+
+        <section class="card" aria-labelledby="notes-heading">
+          <h2 id="notes-heading">Good to know</h2>
+          <ul class="meta-list">
+            <li>
+              <strong>Percentages against zero.</strong>
+              <div>A movement from a zero baseline is reported as <code>n/a</code>, not 100%.</div>
+            </li>
+            <li>
+              <strong>Small segments.</strong>
+              <div>Segments below 0.1% of a metric are excluded, so a three-row segment cannot take the headline with a 900% swing.</div>
+            </li>
+            <li>
+              <strong>Narrative is optional.</strong>
+              <div>With no model provider configured, the summary is written deterministically from the computed numbers.</div>
+            </li>
+            <li>
+              <strong>Share links expire.</strong>
+              <div>Dashboard links carry a single-use-style token and stop working after 72 hours by default.</div>
+            </li>
+          </ul>
+        </section>
+      </aside>
+    </main>
+
+    <footer class="site-footer">
+      <span>Insight Engine</span>
+      <span aria-hidden="true">&middot;</span>
+      <a href="https://github.com/anubhav-n-mishra/Automated-ai-insight-system">Source</a>
+      <span aria-hidden="true">&middot;</span>
+      <a href="/docs">API</a>
+      <span aria-hidden="true">&middot;</span>
+      <span>Apache-2.0</span>
+    </footer>
+  </div>
+
+  <div class="toast-region" id="toasts" role="region" aria-label="Notifications"></div>
+
+  <script src="/assets/ui.js"></script>
+  <script src="/assets/app.js"></script>
+</body>
+</html>
