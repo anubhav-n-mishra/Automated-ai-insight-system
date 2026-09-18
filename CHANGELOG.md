@@ -132,6 +132,23 @@ did, because anyone who generated a report with an earlier build should know.
 - Missing dependencies (`qrcode`, `Pillow`, `requests`, `python-dotenv`,
   `SQLAlchemy`) were absent from the requirements file, so a clean install
   crashed on first run.
+- **Driver attribution divided by the wrong denominator.** The gross movement
+  was summed over the ranked, truncated insight list rather than every segment,
+  so it shrank with `top_insights` and could come out *smaller* than the net
+  movement it was a share of. Gross is now measured across all segments before
+  any filtering.
+- **The page layout overflowed horizontally on a phone.** A `1fr` grid track is
+  floored at its content's minimum width, so the scrollable tab strip pushed the
+  whole page to 451px inside a 390px viewport instead of scrolling within
+  itself.
+- **Inline styles were blocked by the deployment's own security policy.** The
+  Content-Security-Policy correctly forbids inline styles; the markup used them
+  anyway, so affected elements rendered unstyled in a real browser. The markup
+  now matches the policy rather than the policy being weakened.
+- **Structured log fields could crash the request they described.** A field
+  named `name`, `filename` or `module` collides with a `LogRecord` attribute and
+  raises from inside the logging call, surfacing as a 500 from whatever was
+  being logged. Colliding keys are now renamed.
 
 #### Reliability
 - **Report generation blocked the event loop.** Ingestion, model calls and

@@ -23,6 +23,18 @@
     audio: null,
   };
 
+  /**
+   * Set a computed width through the CSSOM.
+   *
+   * The page is served under `style-src 'self'` with no 'unsafe-inline', so a
+   * `style` attribute is refused by the browser and the bar renders at zero
+   * width. Assigning the property directly is permitted.
+   */
+  function setWidth(node, percent) {
+    node.style.width = `${Math.max(0, Math.min(100, percent)).toFixed(1)}%`;
+    return node;
+  }
+
   /* ----------------------------------------------------------------- load -- */
 
   function sessionFromUrl() {
@@ -162,7 +174,7 @@
     for (const attribution of drivers.slice(0, 3)) {
       const widest = Math.max(...attribution.drivers.map((d) => Math.abs(d.delta)), 1);
       target.append(
-        el("div", { style: "margin-bottom:22px" }, [
+        el("div", { class: "mb-lg" }, [
           el("h3", { text: attribution.label }),
           el("p", {
             class: "tagline",
@@ -174,22 +186,25 @@
                 ? " Gains and losses partly cancel, so the net understates the churn beneath it."
                 : ""),
           }),
-          el("div", { style: "display:grid;gap:8px;margin-top:10px" },
+          el("div", { class: "stack mt-sm" },
             attribution.drivers.map((driver) =>
-              el("div", { style: "display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center" }, [
-                el("div", { style: "min-width:0" }, [
-                  el("div", { text: segmentLabel(driver.segment), style: "font-size:0.88rem" }),
+              el("div", { class: "driver-row" }, [
+                el("div", { class: "label" }, [
+                  el("div", { class: "text-sm", text: segmentLabel(driver.segment) }),
                   el("span", { class: "bar" }, [
-                    el("span", {
-                      style: `width:${Math.min(100, (Math.abs(driver.delta) / widest) * 100).toFixed(1)}%;` +
-                             `background:var(--${driver.sentiment === "negative" ? "negative" : "positive"})`,
-                    }),
+                    // Width is a computed value, so it goes through the CSSOM;
+                    // a style attribute would be refused by the CSP.
+                    setWidth(
+                      el("span", {
+                        class: driver.sentiment === "negative" ? "is-negative" : "is-positive",
+                      }),
+                      Math.min(100, (Math.abs(driver.delta) / widest) * 100)
+                    ),
                   ]),
                 ]),
                 el("div", {
-                  class: "delta-cell",
+                  class: "delta-cell figure",
                   dataset: { sentiment: driver.sentiment },
-                  style: "font-size:0.88rem;white-space:nowrap",
                   text: `${formatValue(driver.delta, driver.unit, driver.precision)} (${formatDeltaPct(driver.delta_pct)})`,
                 }),
               ])
@@ -246,7 +261,7 @@
                 ? `${Math.abs(insight.contribution_pct).toFixed(0)}% of the metric's total movement`
                 : "Impact score",
             }, [
-              el("span", { style: `width:${((insight.impact_score / widest) * 100).toFixed(1)}%` }),
+              setWidth(el("span", {}), (insight.impact_score / widest) * 100),
             ]),
           ]),
         ])

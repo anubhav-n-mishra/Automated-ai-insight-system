@@ -192,13 +192,22 @@ a:hover { color: var(--accent-hover); }
 .site-header .spacer { flex: 1 1 auto; }
 .header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
-.layout { display: grid; gap: 24px; grid-template-columns: 1fr; }
+/*
+ * `1fr` is `minmax(auto, 1fr)`, and `auto` floors a track at its content's
+ * min-content width. A horizontally scrollable tab strip inside the track then
+ * pushes the whole grid wider than the viewport instead of scrolling within
+ * it, and the page ends up 451px wide on a 390px phone. `minmax(0, 1fr)` lets
+ * the track shrink, which is what makes the inner overflow containers work.
+ */
+.layout { display: grid; gap: 24px; grid-template-columns: minmax(0, 1fr); }
+.layout > * { min-width: 0; }
 @media (min-width: 1000px) {
   .layout { grid-template-columns: minmax(0, 1.55fr) minmax(280px, 1fr); align-items: start; }
   .layout > aside { position: sticky; top: 20px; }
 }
 
 .card {
+  min-width: 0;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
@@ -211,6 +220,7 @@ a:hover { color: var(--accent-hover); }
 /* ----------------------------------------------------------------- tabs --- */
 .tablist {
   display: flex;
+  min-width: 0;
   gap: 6px;
   overflow-x: auto;
   scrollbar-width: thin;
@@ -298,8 +308,8 @@ input[aria-invalid="true"], select[aria-invalid="true"] { border-color: var(--ne
 
 fieldset { border: 0; padding: 0; margin: 0 0 16px; }
 
-.field-row { display: grid; gap: 12px; grid-template-columns: 1fr; }
-@media (min-width: 560px) { .field-row { grid-template-columns: 1fr 1fr; } }
+.field-row { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 560px) { .field-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
 
 .chip-group {
   display: flex;
@@ -465,7 +475,14 @@ fieldset { border: 0; padding: 0; margin: 0 0 16px; }
 .toast button { margin-left: auto; background: none; border: 0; color: inherit; cursor: pointer; font-size: 1rem; padding: 0 4px; }
 
 /* ----------------------------------------------------------------- stats -- */
-.stat-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+.stat-grid {
+  display: grid;
+  gap: 12px;
+  /* min() keeps a single column from exceeding the viewport on a narrow phone. */
+  grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr));
+}
+.stat { min-width: 0; }
+.stat .value { overflow-wrap: anywhere; }
 .stat {
   padding: 14px 16px;
   border: 1px solid var(--border);
@@ -508,6 +525,7 @@ tbody tr:hover { background: var(--surface-2); }
 
 /* ----------------------------------------------------------------- misc --- */
 .code-block {
+  min-width: 0;
   font-family: var(--mono);
   font-size: 0.8rem;
   line-height: 1.5;
@@ -563,3 +581,49 @@ tbody tr:hover { background: var(--surface-2); }
 
 .empty-state { text-align: center; color: var(--text-muted); padding: 28px 16px; }
 .empty-state h3 { color: var(--text); }
+
+/* ------------------------------------------------------------- utilities -- */
+/*
+ * The Content-Security-Policy is `style-src 'self'` with no 'unsafe-inline',
+ * so a `style="..."` attribute is refused by the browser and the element
+ * renders unstyled. These classes carry what would otherwise be inline, which
+ * keeps the policy strict rather than weakening it to suit the markup.
+ *
+ * Values a browser computes at runtime (a bar's width) are still set through
+ * the CSSOM, which CSP permits.
+ */
+.stack { display: grid; gap: 8px; }
+.stack-sm { display: grid; gap: 6px; }
+.flow { padding-left: 20px; margin: 0; }
+.numbered-steps { font-size: 0.9rem; color: var(--text-muted); }
+.numbered-steps strong { color: var(--text); }
+
+.mt-xs { margin-top: 8px; }
+.mt-sm { margin-top: 10px; }
+.mt-md { margin-top: 14px; }
+.mt-lg { margin-top: 24px; }
+.mb-lg { margin-bottom: 22px; }
+.my-md { margin: 16px 0; }
+
+.text-sm { font-size: 0.88rem; }
+.text-xs { font-size: 0.84rem; }
+.text-muted-sm { font-size: 0.83rem; color: var(--text-muted); }
+.text-lead { font-size: 1.1rem; font-weight: 600; }
+.text-fine { margin-top: 12px; font-size: 0.8rem; }
+.text-transcript { margin-top: 10px; font-size: 0.92rem; color: var(--text-muted); }
+.nowrap { white-space: nowrap; }
+
+summary.plain { cursor: pointer; font-size: 0.9rem; }
+
+/* Driver rows: a label above its bar, with the figure pinned right. */
+.driver-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+.driver-row .label > div { overflow-wrap: anywhere; }
+.driver-row .label { min-width: 0; }
+.driver-row .figure { font-size: 0.88rem; white-space: nowrap; }
+.bar > span.is-negative { background: var(--negative); }
+.bar > span.is-positive { background: var(--positive); }

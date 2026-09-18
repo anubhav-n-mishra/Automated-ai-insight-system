@@ -69,8 +69,18 @@ Deck      : var/reports/2cb708bc.pptx
 Dashboard : https://insights.example.com/d/A1R58Y…?token=…
 ```
 
-Eight slides, a live dashboard, and a spoken briefing — from a config file and a
+Nine slides, a live dashboard, and a spoken briefing — from a config file and a
 CSV.
+
+<table>
+<tr>
+<td width="50%"><img src="docs/media/ui-dashboard-light.png" alt="The shared dashboard: headline metrics, driver breakdown and ranked movements"></td>
+<td width="50%"><img src="docs/media/ui-dashboard-dark.png" alt="The same dashboard in dark theme"></td>
+</tr>
+<tr>
+<td colspan="2" align="center"><em>The shared dashboard. Every figure comes from the analysis; nothing is estimated or filled in.</em></td>
+</tr>
+</table>
 
 ## Why this one
 
@@ -194,6 +204,16 @@ insight-engine serve
 # UI       http://127.0.0.1:8000
 # API docs http://127.0.0.1:8000/docs
 ```
+
+<table>
+<tr>
+<td width="62%"><img src="docs/media/ui-builder-light.png" alt="The report builder: upload a dataset and confirm the inferred configuration"></td>
+<td width="38%"><img src="docs/media/ui-builder-mobile.png" alt="The same builder on a phone"></td>
+</tr>
+<tr>
+<td colspan="2" align="center"><em>Upload, confirm what the engine inferred, generate. Mobile-first, keyboard-navigable, WCAG&nbsp;AA in both themes.</em></td>
+</tr>
+</table>
 
 ### Or a container
 

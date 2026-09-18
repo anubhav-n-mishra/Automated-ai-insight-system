@@ -171,10 +171,54 @@ class PeriodSummary(_Model):
     like_for_like: bool = True
 
     def describe(self) -> str:
+        """Compact form, for slide subtitles and log lines."""
         return (
             f"{self.current_start}..{self.current_end} vs "
             f"{self.previous_start}..{self.previous_end}"
         )
+
+    def describe_prose(self) -> str:
+        """Readable form, for a sentence someone will actually read aloud.
+
+        ``2025-11-24..2025-11-30 vs 2025-11-17..2025-11-23`` is fine as a
+        subtitle and poor inside a sentence.
+        """
+        return (
+            f"the week to {_spell_date(self.current_end)}, "
+            f"against the week to {_spell_date(self.previous_end)}"
+            if self.current_days == 7 and self.previous_days == 7
+            else (
+                f"{_spell_date(self.current_start)} to {_spell_date(self.current_end)}, "
+                f"against {_spell_date(self.previous_start)} to "
+                f"{_spell_date(self.previous_end)}"
+            )
+        )
+
+
+_MONTHS = (
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+)
+
+
+def _spell_date(iso: str) -> str:
+    """``2025-11-30`` as ``30 November``, keeping the year only when it helps."""
+    try:
+        year, month, day = (int(part) for part in iso.split("-"))
+        name = _MONTHS[month - 1]
+    except (ValueError, IndexError):
+        return iso
+    return f"{day} {name} {year}"
 
 
 class Narrative(_Model):

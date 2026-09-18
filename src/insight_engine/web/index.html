@@ -56,7 +56,7 @@
               <span class="hint">or drag it here &middot; up to 64&nbsp;MB</span>
               <span class="filename" id="dropzone-filename"></span>
             </button>
-            <p id="dropzone-help" class="help" style="margin-top:8px;color:var(--text-muted);font-size:0.83rem;">
+            <p id="dropzone-help" class="help mt-xs text-muted-sm">
               Column roles and the date range are inferred on this server. Your data is not sent to a model provider.
             </p>
             <input type="file" id="file-input" accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values" class="visually-hidden">
@@ -189,12 +189,12 @@
       <aside>
         <section class="card" aria-labelledby="how-heading">
           <h2 id="how-heading">How it works</h2>
-          <ol style="padding-left:20px;margin:0;font-size:0.9rem;color:var(--text-muted);display:grid;gap:8px;">
-            <li><strong style="color:var(--text)">Profile.</strong> Column roles and a date range are inferred locally from the file you upload.</li>
-            <li><strong style="color:var(--text)">Aggregate.</strong> Each metric is reduced with its own aggregation; ratios are computed after aggregation, never averaged across rows.</li>
-            <li><strong style="color:var(--text)">Rank.</strong> Segments are scored by their share of the total movement, weighted by KPI priority and damped by materiality.</li>
-            <li><strong style="color:var(--text)">Attribute.</strong> Each total movement is decomposed across the segments that caused it, with the unexplained remainder stated.</li>
-            <li><strong style="color:var(--text)">Render.</strong> A deck, a tokenised dashboard and an audio briefing, all from the same numbers.</li>
+          <ol class="flow stack numbered-steps">
+            <li><strong>Profile.</strong> Column roles and a date range are inferred locally from the file you upload.</li>
+            <li><strong>Aggregate.</strong> Each metric is reduced with its own aggregation; ratios are computed after aggregation, never averaged across rows.</li>
+            <li><strong>Rank.</strong> Segments are scored by their share of the total movement, weighted by KPI priority and damped by materiality.</li>
+            <li><strong>Attribute.</strong> Each total movement is decomposed across the segments that caused it, with the unexplained remainder stated.</li>
+            <li><strong>Render.</strong> A deck, a tokenised dashboard and an audio briefing, all from the same numbers.</li>
           </ol>
         </section>
 

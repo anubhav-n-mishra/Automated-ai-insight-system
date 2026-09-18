@@ -14,9 +14,9 @@ the fix.
 | Severity | Count | Fixed in 1.0.0 |
 | --- | --- | --- |
 | Critical (security) | 6 | 6 |
-| High (silently wrong output) | 9 | 9 |
-| High (reliability) | 5 | 5 |
-| Medium (UX, accessibility, responsiveness) | 14 | 14 |
+| High (silently wrong output) | 10 | 10 |
+| High (reliability) | 6 | 6 |
+| Medium (UX, accessibility, responsiveness) | 16 | 16 |
 | Medium (engineering hygiene) | 11 | 11 |
 | Feature gaps | 9 | 6, 3 on the roadmap |
 
@@ -264,6 +264,23 @@ parentheses, and `abs`, `min`, `max`, `coalesce`, `safe_div`, `log`, `sqrt`,
 cannot execute code. Regression tests: `tests/unit/test_formula.py`, which
 includes a dozen rejected injection attempts.
 
+### C10. Driver attribution divided by the wrong denominator
+
+**Symptom.** A report could claim the top five segments explained 100% of a
+movement whose stated gross was *smaller* than its net — arithmetically
+impossible, since gross is a sum of absolute values.
+
+**Mechanism.** Gross movement was summed over the ranked insight list, which is
+filtered by materiality and truncated to `top_insights`. The denominator
+therefore shrank as `top_insights` shrank.
+
+**Fixed.** Gross movement and segment counts are computed across every segment,
+before filtering or truncation, and carried alongside the ranked list.
+`explained_pct` is clamped to the range it can meaningfully occupy. Found by a
+live end-to-end run rather than by a unit test, which is why the regression test
+`TestMovementStatistics::test_gross_is_never_smaller_than_the_net` asserts the
+invariant directly.
+
 ---
 
 ## High: reliability
@@ -301,7 +318,18 @@ passed, so two concurrent callers could observe each other's manager.
 
 **Fixed.** Ordinary objects, constructed once at startup and injected.
 
-### R5. Share links pointed at localhost
+### R5. Structured log fields could crash the request they described
+
+A field named `name`, `filename`, `module` or `args` collides with a reserved
+`LogRecord` attribute, and `logging` raises `KeyError: "Attempt to overwrite
+'name' in LogRecord"` from inside the logging call. The upload handler logged
+`extra={"name": filename}`, so every upload returned a 500.
+
+**Fixed** centrally rather than at the call site: the package's logger class
+renames colliding keys, so no caller can trip it. Regression test:
+`TestStructuredLogging`.
+
+### R6. Share links pointed at localhost
 
 `base_url = "http://localhost:8000"` was hard-coded in three places. The QR code
 — a headline feature — was unusable anywhere but the machine that generated it.
@@ -329,6 +357,8 @@ without.
 | U12 | No way to cancel a running report | Cancel button, `DELETE /api/v1/jobs/{id}` |
 | U13 | No dark mode, no theme control | System-aware with an explicit toggle, persisted |
 | U14 | User-controlled and model-generated text went through `innerHTML` | Nothing is rendered with `innerHTML`; a CSV column named `<img src=x onerror=…>` is inert |
+| U15 | The page overflowed horizontally on a 390px viewport — a `1fr` grid track is floored at its content's minimum width, so the scrollable tab strip pushed the whole page to 451px | `minmax(0, 1fr)` throughout, verified in a real browser at four breakpoints |
+| U16 | Inline `style` attributes were refused by the deployment's own Content-Security-Policy, so those elements rendered unstyled | All styling moved to the stylesheet; computed values go through the CSSOM. `el()` now accepts only an object for `style`, so the unsafe form cannot be written |
 
 The single worst of these is U9. It meant the default path through the UI, for
 any dataset that was not from this week, produced an empty report and no
@@ -382,3 +412,8 @@ please leave it in place when you touch the test.
 CI runs lint, strict type checking, the full suite on four Python versions,
 `pip-audit`, secret scanning, CodeQL, and an end-to-end CLI run that asserts the
 generated deck contains a real presentation with at least seven slides.
+
+Four of the findings above — C10, R5, U15 and U16 — were caught only by running
+the assembled system against a live server and a real browser, not by any unit
+test. Each now has a regression test, but the lesson is worth keeping: a green
+suite is necessary and not sufficient.

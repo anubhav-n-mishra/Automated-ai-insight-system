@@ -211,7 +211,7 @@ def template_narrative(result: AnalysisResult) -> Narrative:
             headline = (
                 f"{headline_total.label} {verb} "
                 f"{format_delta_pct(headline_total.delta_pct)} to {current} "
-                f"over {result.period.describe()}."
+                f"over {result.period.describe_prose()}."
             )
 
     bullets = [describe_total(total) for total in movers]

@@ -78,7 +78,7 @@ class TestSegmentJoin:
             {"geo": ["US", "GONE"], "clicks": [80.0, 25.0]},
         )
         totals = compare_totals(spec, {"clicks": 140.0}, {"clicks": 105.0})
-        insights = build_insights(frames, spec, totals)
+        insights = build_insights(frames, spec, totals).insights
 
         labels = {insight.segment["geo"] for insight in insights}
         assert {"US", "NEW", "GONE"} <= labels
@@ -90,7 +90,9 @@ class TestSegmentJoin:
     ) -> None:
         frames = periods({"geo": ["NEW"], "clicks": [40.0]}, {"geo": ["US"], "clicks": [10.0]})
         totals = compare_totals(spec, {"clicks": 40.0}, {"clicks": 10.0})
-        new = next(i for i in build_insights(frames, spec, totals) if i.segment["geo"] == "NEW")
+        new = next(
+            i for i in build_insights(frames, spec, totals).insights if i.segment["geo"] == "NEW"
+        )
         assert new.previous_value == 0.0
         assert new.delta_pct is None
 
@@ -104,7 +106,7 @@ class TestRanking:
             {"geo": ["BIG", "TINY"], "clicks": [10_000.0, 1.0]},
         )
         totals = compare_totals(spec, {"clicks": 11_030.0}, {"clicks": 10_001.0})
-        ranked = build_insights(frames, spec, totals)
+        ranked = build_insights(frames, spec, totals).insights
         assert ranked[0].segment["geo"] == "BIG"
 
     def test_immaterial_segments_are_dropped(self) -> None:
@@ -140,12 +142,12 @@ class TestRanking:
             {"geo": ["BIG", "DUST"], "clicks": [9_000.0, 1.0]},
         )
         totals = compare_totals(spec, {"clicks": 10_003.0}, {"clicks": 9_001.0})
-        assert {i.segment["geo"] for i in build_insights(frames, spec, totals)} == {"BIG"}
+        assert {i.segment["geo"] for i in build_insights(frames, spec, totals).insights} == {"BIG"}
 
     def test_flat_segments_are_not_reported_as_insights(self, spec: AnalysisSpec) -> None:
         frames = periods({"geo": ["A"], "clicks": [100.0]}, {"geo": ["A"], "clicks": [100.0]})
         totals = compare_totals(spec, {"clicks": 100.0}, {"clicks": 100.0})
-        assert build_insights(frames, spec, totals) == []
+        assert build_insights(frames, spec, totals).insights == []
 
 
 class TestSentiment:
@@ -192,7 +194,7 @@ class TestDrivers:
             {"geo": ["A", "B", "C"], "clicks": [400.0, 250.0, 200.0]},
         )
         totals = compare_totals(spec, {"clicks": 1010.0}, {"clicks": 850.0})
-        insights = build_insights(frames, spec, totals)
+        insights = build_insights(frames, spec, totals).insights
         drivers = attribute_drivers(insights, totals, spec)
 
         assert drivers
@@ -253,3 +255,94 @@ class TestDrivers:
         )
         drivers = attribute_drivers(build_insights(frames, spec, totals), totals, spec)
         assert "ctr" not in {attribution.metric for attribution in drivers}
+
+
+class TestMovementStatistics:
+    """Gross movement is measured across every segment, not the ranked subset."""
+
+    def test_gross_is_never_smaller_than_the_net(self) -> None:
+        # Truncating the ranked list used to shrink the denominator, producing
+        # a "gross" below the net movement — arithmetically impossible, and it
+        # made explained_pct exceed 100.
+        spec = spec_from_mapping(
+            {
+                "dataset": {
+                    "primary_source": "s",
+                    "sources": {
+                        "s": {
+                            "type": "csv",
+                            "path": "x.csv",
+                            "date_column": "d",
+                            "dimensions": ["geo"],
+                            "metrics": [{"name": "clicks"}],
+                        }
+                    },
+                },
+                "report": {
+                    "date_column": "d",
+                    "dimensions": ["geo"],
+                    "top_insights": 2,
+                    "comparison": {
+                        "current_start": "2025-01-08",
+                        "current_end": "2025-01-14",
+                        "previous_start": "2025-01-01",
+                        "previous_end": "2025-01-07",
+                    },
+                },
+            }
+        )
+        frames = periods(
+            {"geo": list("ABCDE"), "clicks": [500.0, 400.0, 300.0, 200.0, 100.0]},
+            {"geo": list("ABCDE"), "clicks": [400.0, 300.0, 250.0, 180.0, 95.0]},
+        )
+        totals = compare_totals(spec, {"clicks": 1500.0}, {"clicks": 1225.0})
+        ranked = build_insights(frames, spec, totals)
+
+        assert len(ranked.insights) == 2  # truncated
+        assert ranked.movements["clicks"].segment_count == 5  # but measured over all
+        assert ranked.movements["clicks"].gross == pytest.approx(275.0)
+
+        attribution = attribute_drivers(ranked, totals, spec)[0]
+        assert attribution.gross_movement >= abs(attribution.total_delta)
+        assert 0 <= attribution.explained_pct <= 100
+        assert attribution.segment_count == 5
+
+    def test_offsetting_movements_are_flagged(self) -> None:
+        spec = spec_from_mapping(
+            {
+                "dataset": {
+                    "primary_source": "s",
+                    "sources": {
+                        "s": {
+                            "type": "csv",
+                            "path": "x.csv",
+                            "date_column": "d",
+                            "dimensions": ["geo"],
+                            "metrics": [{"name": "clicks"}],
+                        }
+                    },
+                },
+                "report": {
+                    "date_column": "d",
+                    "dimensions": ["geo"],
+                    "comparison": {
+                        "current_start": "2025-01-08",
+                        "current_end": "2025-01-14",
+                        "previous_start": "2025-01-01",
+                        "previous_end": "2025-01-07",
+                    },
+                },
+            }
+        )
+        # +1000 in one segment, -900 in another: a net of +100 that hides 1900
+        # of underlying churn.
+        frames = periods(
+            {"geo": ["UP", "DOWN"], "clicks": [2000.0, 100.0]},
+            {"geo": ["UP", "DOWN"], "clicks": [1000.0, 1000.0]},
+        )
+        totals = compare_totals(spec, {"clicks": 2100.0}, {"clicks": 2000.0})
+        attribution = attribute_drivers(build_insights(frames, spec, totals), totals, spec)[0]
+
+        assert attribution.offsetting
+        assert attribution.gross_movement == pytest.approx(1900.0)
+        assert attribution.explained_pct <= 100

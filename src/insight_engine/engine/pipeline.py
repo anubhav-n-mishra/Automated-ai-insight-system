@@ -101,8 +101,9 @@ def run_analysis(
         )
 
     with METRICS.timer("insight_engine_stage_seconds", {"stage": "rank"}):
-        insights = build_insights(periods, spec, totals)
-        drivers = attribute_drivers(insights, totals, spec)
+        ranked = build_insights(periods, spec, totals)
+        insights = ranked.insights
+        drivers = attribute_drivers(ranked, totals, spec)
     progress("ranking", 0.70)
 
     if not insights:

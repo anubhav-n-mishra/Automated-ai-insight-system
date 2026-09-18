@@ -155,8 +155,8 @@ report:
     if (!rows || !rows.length) return el("div");
     const columns = Object.keys(rows[0]);
     return el("details", { class: "field" }, [
-      el("summary", { text: `Preview the first ${rows.length} rows`, style: "cursor:pointer" }),
-      el("div", { class: "table-scroll", style: "margin-top:10px" }, [
+      el("summary", { class: "plain", text: `Preview the first ${rows.length} rows` }),
+      el("div", { class: "table-scroll mt-sm" }, [
         el("table", {}, [
           el("thead", {}, [el("tr", {}, columns.map((c) => el("th", { text: c })))]),
           el("tbody", {}, rows.map((row) =>
@@ -450,7 +450,7 @@ report:
     const analysis = result.analysis || {};
     const narrative = analysis.narrative;
 
-    const children = [el("h3", { text: "Report ready", style: "margin-top:24px" })];
+    const children = [el("h3", { class: "mt-lg", text: "Report ready" })];
 
     if (narrative) {
       children.push(
@@ -470,7 +470,7 @@ report:
 
     if (analysis.totals && analysis.totals.length) {
       children.push(
-        el("div", { class: "stat-grid", style: "margin:16px 0" },
+        el("div", { class: "stat-grid my-md" },
           analysis.totals.slice(0, 4).map(statCard))
       );
     }
@@ -494,7 +494,7 @@ report:
     );
 
     children.push(
-      el("p", { class: "help", style: "margin-top:12px;color:var(--text-muted);font-size:0.84rem" }, [
+      el("p", { class: "help mt-sm text-muted-sm" }, [
         `Analysed ${(analysis.row_count || 0).toLocaleString()} rows across `,
         `${(analysis.segment_count || 0).toLocaleString()} segments in `,
         `${((analysis.duration_ms || 0) / 1000).toFixed(1)}s. `,

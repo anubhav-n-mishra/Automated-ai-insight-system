@@ -231,3 +231,44 @@ class TestReportService:
     def test_purge_reports_what_it_removed(self, service) -> None:
         removed = service.purge()
         assert set(removed) >= {"sessions", "artifacts"}
+
+
+class TestStructuredLogging:
+    """Structured fields must never collide with a LogRecord slot.
+
+    A field named `name`, `module`, `filename` or `args` used to raise
+    `KeyError: "Attempt to overwrite 'name' in LogRecord"` from inside the
+    logging call, which surfaced as a 500 from whatever was being logged. The
+    logger class renames colliding keys instead.
+    """
+
+    @pytest.mark.parametrize(
+        "field", ["name", "module", "filename", "args", "message", "levelname", "lineno"]
+    )
+    def test_reserved_field_names_do_not_raise(self, field: str, caplog) -> None:
+        from insight_engine.core.logging import get_logger
+
+        logger = get_logger("tests.reserved")
+        with caplog.at_level("INFO"):
+            logger.info("event", extra={field: "value"})
+
+        record = caplog.records[-1]
+        assert getattr(record, f"field_{field}") == "value"
+
+    def test_ordinary_fields_are_untouched(self, caplog) -> None:
+        from insight_engine.core.logging import get_logger
+
+        logger = get_logger("tests.ordinary")
+        with caplog.at_level("INFO"):
+            logger.info("event", extra={"upload_id": "abc", "rows": 12})
+
+        record = caplog.records[-1]
+        assert record.upload_id == "abc"
+        assert record.rows == 12
+
+    def test_credentials_are_redacted_from_structured_fields(self) -> None:
+        from insight_engine.core.logging import redact
+
+        cleaned = redact({"connection_string": "postgres://u:p@h/db", "rows": 3})
+        assert cleaned["connection_string"] == "***"
+        assert cleaned["rows"] == 3

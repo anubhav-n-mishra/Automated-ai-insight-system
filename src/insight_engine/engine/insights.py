@@ -57,6 +57,41 @@ PRESENT_PREVIOUS = "__present_previous"
 
 
 @dataclass(frozen=True)
+class MetricMovement:
+    """How much a metric moved across *every* segment, before ranking.
+
+    ``gross`` is the sum of absolute segment movements, so it is always at
+    least ``abs(net)``. Both the ranking denominator and driver attribution
+    need this computed over the full segment set: deriving it from the ranked
+    list instead makes it shrink as ``top_insights`` shrinks, and it can then
+    come out smaller than the net movement, which is arithmetically impossible.
+    """
+
+    metric: str
+    gross: float
+    magnitude: float
+    segment_count: int
+
+
+@dataclass(frozen=True)
+class RankingResult:
+    """Ranked insights plus the movement statistics they were ranked against."""
+
+    insights: list[Insight]
+    movements: dict[str, MetricMovement]
+
+    def __iter__(self):  # type: ignore[no-untyped-def]
+        # Ranked insights are what callers usually want to walk.
+        return iter(self.insights)
+
+    def __len__(self) -> int:
+        return len(self.insights)
+
+    def __getitem__(self, index: int) -> Insight:
+        return self.insights[index]
+
+
+@dataclass(frozen=True)
 class _MetricView:
     """Everything ranking needs about a metric, base or derived."""
 
@@ -205,7 +240,7 @@ def build_insights(
     periods: PeriodFrames,
     spec: AnalysisSpec,
     totals: list[MetricTotals],
-) -> list[Insight]:
+) -> RankingResult:
     """Rank every metric/segment movement by impact."""
     views = _views(spec)
     weights = _priority_weights(spec)
@@ -213,29 +248,37 @@ def build_insights(
     joined = join_periods(periods, spec)
 
     if joined.height == 0:
-        return []
+        return RankingResult(insights=[], movements={})
 
     totals_by_metric = {total.metric: total for total in totals}
     rows = joined.to_dicts()
 
-    #: Denominators for contribution share, per metric.
-    movement_totals: dict[str, float] = {}
-    current_totals: dict[str, float] = {}
+    #: Denominators for contribution share and materiality, per metric, over
+    #: every segment. Computed once, before any filtering or truncation.
+    movements: dict[str, MetricMovement] = {}
     for name in spec.metric_names:
         current_key, previous_key = f"{name}{CURRENT_SUFFIX}", f"{name}{PREVIOUS_SUFFIX}"
         if current_key not in joined.columns:
             continue
-        movement = 0.0
+        gross = 0.0
         magnitude = 0.0
+        segments = 0
         for row in rows:
             current_value = _number(row.get(current_key))
             previous_value = _number(row.get(previous_key))
             if current_value is None and previous_value is None:
                 continue
-            movement += abs((current_value or 0.0) - (previous_value or 0.0))
+            delta = (current_value or 0.0) - (previous_value or 0.0)
+            gross += abs(delta)
             magnitude += abs(current_value or 0.0)
-        movement_totals[name] = movement
-        current_totals[name] = magnitude
+            if delta != 0.0:
+                segments += 1
+        movements[name] = MetricMovement(
+            metric=name, gross=gross, magnitude=magnitude, segment_count=segments
+        )
+
+    movement_totals = {name: movement.gross for name, movement in movements.items()}
+    current_totals = {name: movement.magnitude for name, movement in movements.items()}
 
     insights: list[Insight] = []
     for row in rows:
@@ -330,11 +373,14 @@ def build_insights(
         "insights ranked",
         extra={"candidates": len(insights), "kept": min(len(ranked), spec.report.top_insights)},
     )
-    return ranked[: spec.report.top_insights]
+    return RankingResult(
+        insights=ranked[: spec.report.top_insights],
+        movements=movements,
+    )
 
 
 def attribute_drivers(
-    insights: list[Insight],
+    ranked: RankingResult | list[Insight],
     totals: list[MetricTotals],
     spec: AnalysisSpec,
 ) -> list[DriverAttribution]:
@@ -348,6 +394,9 @@ def attribute_drivers(
         return []
 
     views = _views(spec)
+    insights = ranked.insights if isinstance(ranked, RankingResult) else list(ranked)
+    movements = ranked.movements if isinstance(ranked, RankingResult) else {}
+
     by_metric: dict[str, list[Insight]] = {}
     for insight in insights:
         by_metric.setdefault(insight.metric, []).append(insight)
@@ -366,12 +415,15 @@ def attribute_drivers(
 
         drivers = candidates[: spec.report.max_drivers_per_metric]
 
-        # Share of *gross* movement, not net. When a +1000 segment and a -200
-        # segment sit inside a net +250, dividing by the net yields "460%
-        # explained", which is arithmetically true and useless to a reader.
-        gross = sum(abs(candidate.delta) for candidate in candidates)
+        # Share of *gross* movement across every segment, not net and not the
+        # ranked subset. Dividing by the net yields figures like "460%
+        # explained" whenever gains and losses offset; dividing by the ranked
+        # subset makes the denominator shrink with `top_insights`.
+        movement = movements.get(total.metric)
+        gross = movement.gross if movement else sum(abs(c.delta) for c in candidates)
+        gross = max(gross, abs(total.delta))
         explained = sum(abs(driver.delta) for driver in drivers)
-        explained_pct = round((explained / gross) * 100.0, 2) if gross > 0 else 0.0
+        explained_pct = round(min(explained / gross, 1.0) * 100.0, 2) if gross > 0 else 0.0
 
         attributions.append(
             DriverAttribution(
@@ -381,7 +433,7 @@ def attribute_drivers(
                 gross_movement=round(gross, 6),
                 drivers=drivers,
                 explained_pct=explained_pct,
-                segment_count=len(candidates),
+                segment_count=movement.segment_count if movement else len(candidates),
                 # A net that hides more than a quarter of the underlying churn
                 # is a net worth flagging.
                 offsetting=gross > abs(total.delta) * 1.25,

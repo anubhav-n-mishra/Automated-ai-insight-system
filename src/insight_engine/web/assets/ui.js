@@ -3,7 +3,9 @@
  *
  * Two rules run through this file.
  *
- * 1. Nothing is ever written with innerHTML. Every value rendered here can
+ * 1. Nothing is ever written with innerHTML, and nothing is styled with a
+ *    style attribute. The page runs under `style-src 'self'` with no
+ *    'unsafe-inline', so an attribute would be refused by the browser. Every value rendered here can
  *    originate from a CSV header, a segment value or model-generated prose, and
  *    the previous UI interpolated all three straight into innerHTML — a CSV
  *    with a column named `<img src=x onerror=...>` executed on the dashboard of
@@ -24,6 +26,10 @@
         if (key === "class") node.className = value;
         else if (key === "text") node.textContent = String(value);
         else if (key === "dataset") Object.assign(node.dataset, value);
+        // `style` takes an object and is applied through the CSSOM. A style
+        // *attribute* is refused under `style-src 'self'`, so accepting a
+        // string here would silently render the element unstyled.
+        else if (key === "style") Object.assign(node.style, value);
         else if (key.startsWith("on") && typeof value === "function") {
           node.addEventListener(key.slice(2).toLowerCase(), value);
         } else if (value === true) node.setAttribute(key, "");

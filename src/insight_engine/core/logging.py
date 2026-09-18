@@ -12,11 +12,18 @@ import json
 import logging
 import sys
 import uuid
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from contextvars import ContextVar
 from datetime import datetime, timezone
+from types import TracebackType
 from typing import Any
+
+# Mirrors the stdlib's own (private) aliases for these parameters.
+_SysExcInfoType = (
+    tuple[type[BaseException], BaseException, TracebackType | None] | tuple[None, None, None]
+)
+_ArgsType = tuple[object, ...] | Mapping[str, object]
 
 _request_id: ContextVar[str | None] = ContextVar("insight_engine_request_id", default=None)
 
@@ -128,6 +135,42 @@ def configure_logging(level: str = "INFO", fmt: str = "json") -> None:
 
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("httpcore").setLevel(logging.WARNING)
+
+
+class _SafeLogger(logging.Logger):
+    """A logger whose ``extra=`` fields can never collide with a LogRecord slot.
+
+    ``logging`` raises ``KeyError: "Attempt to overwrite 'name' in LogRecord"``
+    when an ``extra`` key shadows a built-in record attribute. Structured
+    logging makes that collision easy to hit — ``name``, ``module``, ``message``,
+    ``args`` and ``filename`` are all natural field names — and the failure
+    surfaces as a 500 from whatever was being logged, not as a logging problem.
+
+    Colliding keys are prefixed rather than dropped, so the value still reaches
+    the log.
+    """
+
+    def makeRecord(  # noqa: N802 - name and signature are the stdlib's
+        self,
+        name: str,
+        level: int,
+        fn: str,
+        lno: int,
+        msg: object,
+        args: _ArgsType,
+        exc_info: _SysExcInfoType | None,
+        func: str | None = None,
+        extra: Mapping[str, object] | None = None,
+        sinfo: str | None = None,
+    ) -> logging.LogRecord:
+        if extra:
+            extra = {
+                (f"field_{key}" if key in _RESERVED else key): value for key, value in extra.items()
+            }
+        return super().makeRecord(name, level, fn, lno, msg, args, exc_info, func, extra, sinfo)
+
+
+logging.setLoggerClass(_SafeLogger)
 
 
 def get_logger(name: str) -> logging.Logger:

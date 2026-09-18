@@ -110,7 +110,7 @@ class UploadStore:
 
         logger.info(
             "upload staged",
-            extra={"upload_id": upload_id, "bytes": len(data), "name": display_name},
+            extra={"upload_id": upload_id, "bytes": len(data), "original_name": display_name},
         )
         return StagedUpload(
             upload_id=upload_id,
