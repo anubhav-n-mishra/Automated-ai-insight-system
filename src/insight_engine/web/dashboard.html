@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <!-- The URL carries an access token; keep it out of third-party referrer logs. -->
+  <meta name="referrer" content="no-referrer">
+  <meta name="color-scheme" content="light dark">
+  <title>Insight dashboard</title>
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+
+  <div class="page">
+    <header class="site-header">
+      <div class="brand">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+          <rect x="2" y="13" width="4.5" height="8" rx="1.2" fill="currentColor" opacity="0.55"></rect>
+          <rect x="9.75" y="8" width="4.5" height="13" rx="1.2" fill="currentColor" opacity="0.78"></rect>
+          <rect x="17.5" y="3" width="4.5" height="18" rx="1.2" fill="currentColor"></rect>
+        </svg>
+        <div>
+          <h1 id="report-title">Insight dashboard</h1>
+          <p class="tagline" id="report-period"></p>
+        </div>
+      </div>
+      <div class="spacer"></div>
+      <div class="header-actions">
+        <button type="button" class="btn btn-ghost btn-sm" id="theme-toggle" aria-pressed="false">
+          <span id="theme-label">Dark theme</span>
+        </button>
+        <a class="btn btn-ghost btn-sm" id="deck-link" href="#" hidden download>Download the deck</a>
+      </div>
+    </header>
+
+    <main id="main">
+      <div id="loading" class="card">
+        <p role="status" aria-live="polite">Loading this report…</p>
+      </div>
+
+      <div id="error" hidden></div>
+
+      <div id="dashboard" hidden>
+        <section class="card" aria-labelledby="briefing-heading">
+          <h2 id="briefing-heading">Audio briefing</h2>
+          <div class="player">
+            <button type="button" class="play" id="play-btn" aria-pressed="false" aria-describedby="audio-status">
+              <svg id="play-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M8 5v14l11-7z"></path>
+              </svg>
+              <span class="visually-hidden" id="play-label">Play the briefing</span>
+            </button>
+            <div class="info">
+              <p id="audio-status">Preparing the briefing…</p>
+              <div class="progress-track">
+                <div class="progress-fill" id="audio-progress" role="progressbar"
+                     aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"
+                     aria-labelledby="play-label"></div>
+              </div>
+            </div>
+          </div>
+          <audio id="audio-element" preload="none" class="visually-hidden"></audio>
+          <details class="mt-md">
+            <summary class="plain">Read the briefing instead</summary>
+            <p id="briefing-transcript" class="text-transcript"></p>
+          </details>
+        </section>
+
+        <section class="card" aria-labelledby="summary-heading">
+          <h2 id="summary-heading">Summary</h2>
+          <div id="warnings"></div>
+          <p id="headline" class="text-lead"></p>
+          <ul id="bullets" class="flow stack"></ul>
+          <div id="recommendation"></div>
+          <p id="narrative-provenance" class="tagline text-fine"></p>
+        </section>
+
+        <section class="card" aria-labelledby="totals-heading">
+          <h2 id="totals-heading">Headline metrics</h2>
+          <div class="stat-grid" id="totals"></div>
+        </section>
+
+        <section class="card" aria-labelledby="drivers-heading" id="drivers-section" hidden>
+          <h2 id="drivers-heading">What drove the change</h2>
+          <div id="drivers"></div>
+        </section>
+
+        <section class="card" aria-labelledby="insights-heading">
+          <h2 id="insights-heading">Top movements</h2>
+          <div class="table-scroll">
+            <table id="insights-table">
+              <caption id="insights-caption"></caption>
+              <thead>
+                <tr>
+                  <th scope="col">Segment</th>
+                  <th scope="col">Metric</th>
+                  <th scope="col" class="num">Previous</th>
+                  <th scope="col" class="num">Current</th>
+                  <th scope="col" class="num">Change</th>
+                  <th scope="col">Impact</th>
+                </tr>
+              </thead>
+              <tbody id="insights-body"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="card" aria-labelledby="method-heading">
+          <h2 id="method-heading">Methodology</h2>
+          <ul class="meta-list" id="methodology"></ul>
+        </section>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <span id="expiry-note"></span>
+      <span class="spacer"></span>
+      <a href="/">Insight Engine</a>
+    </footer>
+  </div>
+
+  <div class="toast-region" id="toasts" role="region" aria-label="Notifications"></div>
+
+  <script src="/assets/ui.js"></script>
+  <script src="/assets/dashboard.js"></script>
+</body>
+</html>

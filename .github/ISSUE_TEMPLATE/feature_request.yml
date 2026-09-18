@@ -1,0 +1,50 @@
+name: Feature request
+description: Propose something the project should be able to do
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: |
+        What are you trying to accomplish that you cannot today? Describe the
+        situation rather than the feature — the best design often is not the
+        one either of us thought of first.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you have in mind
+      description: How you imagine it working, if you have a view.
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What you tried instead
+      description: Workarounds, other tools, or why the existing options do not fit.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Analytics and ranking
+        - Data sources and connectors
+        - Reports and rendering
+        - Dashboard and web UI
+        - API
+        - CLI
+        - Deployment and operations
+        - Documentation
+        - Not sure
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Would you like to implement it?
+      options:
+        - label: I would be willing to open a pull request for this

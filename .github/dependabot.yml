@@ -1,0 +1,29 @@
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels: ["dependencies"]
+    groups:
+      # One PR per ecosystem area keeps the review queue readable; security
+      # updates still arrive separately and immediately.
+      dev-dependencies:
+        patterns: ["ruff", "mypy", "pytest*", "pre-commit", "pip-audit", "types-*"]
+      runtime-dependencies:
+        patterns: ["*"]
+        exclude-patterns: ["ruff", "mypy", "pytest*", "pre-commit", "pip-audit", "types-*"]
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    labels: ["dependencies", "ci"]
+
+  - package-ecosystem: docker
+    directory: "/deploy"
+    schedule:
+      interval: weekly
+    labels: ["dependencies", "docker"]

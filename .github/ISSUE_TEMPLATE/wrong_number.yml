@@ -1,0 +1,64 @@
+name: A reported figure looks wrong
+description: The engine computed something you believe is incorrect
+labels: ["bug", "correctness", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Correctness reports are treated as the highest-priority class of bug in
+        this project. A tool that is confidently wrong is worse than no tool.
+
+  - type: input
+    id: metric
+    attributes:
+      label: Which metric
+      placeholder: "ctr, revenue, cost_per_click…"
+    validations:
+      required: true
+
+  - type: input
+    id: segment
+    attributes:
+      label: Which segment
+      placeholder: "campaign: Performance_Max, geo: US — or 'the overall total'"
+
+  - type: input
+    id: reported
+    attributes:
+      label: What the report said
+    validations:
+      required: true
+
+  - type: input
+    id: expected
+    attributes:
+      label: What you believe it should be
+    validations:
+      required: true
+
+  - type: textarea
+    id: working
+    attributes:
+      label: How you arrived at the expected figure
+      description: The calculation, the SQL, or the spreadsheet formula.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: spec
+    attributes:
+      label: The specification used
+      description: Redact connection strings and credentials.
+      render: yaml
+    validations:
+      required: true
+
+  - type: textarea
+    id: data
+    attributes:
+      label: Representative rows
+      description: |
+        The smallest synthetic dataset that reproduces the discrepancy. Please
+        do not attach real customer data.
+      render: csv

@@ -1,0 +1,16 @@
+# Review ownership. Every path needs an owner so nothing merges unreviewed.
+# See CONTRIBUTING.md for how review works on this project.
+
+*                           @anubhav-n-mishra
+
+# The analytical core decides what numbers a stakeholder sees. Changes here
+# need a reviewer who will check the arithmetic, not only the diff.
+/src/insight_engine/engine/ @anubhav-n-mishra
+/src/insight_engine/domain/ @anubhav-n-mishra
+
+# Anything that changes the security posture.
+/src/insight_engine/api/    @anubhav-n-mishra
+/src/insight_engine/core/config.py @anubhav-n-mishra
+/SECURITY.md                @anubhav-n-mishra
+/.github/workflows/         @anubhav-n-mishra
+/deploy/                    @anubhav-n-mishra

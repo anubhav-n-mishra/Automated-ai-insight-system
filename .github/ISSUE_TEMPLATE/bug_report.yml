@@ -1,0 +1,70 @@
+name: Bug report
+description: Something behaves differently from what it documents
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this.
+
+        **If the bug is a security vulnerability, stop here** and use
+        [private reporting](https://github.com/anubhav-n-mishra/Automated-ai-insight-system/security/advisories/new)
+        instead. See [SECURITY.md](../blob/main/SECURITY.md).
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What did you expect, and what did you get instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How to reproduce
+      description: |
+        The smallest sequence that shows the problem. A specification and a few
+        rows of representative data help enormously — please redact anything
+        real first.
+      placeholder: |
+        1. insight-engine run report.yaml
+        2. ...
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: wrong-number
+    attributes:
+      label: If a reported number looks wrong
+      description: |
+        Which metric, which segment, what the report said, and what you believe
+        the correct value is. This is the most valuable kind of bug report this
+        project gets, and the hardest to reconstruct without your help.
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: "Paste the output of `insight-engine doctor` (it prints no secrets)."
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: "Relevant log lines. Include the `request_id` if this came from the API."
+      render: shell
+
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues for this
+          required: true
+        - label: I removed credentials and customer data from everything above
+          required: true
