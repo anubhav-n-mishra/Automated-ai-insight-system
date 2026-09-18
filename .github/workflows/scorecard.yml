@@ -21,7 +21,10 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: ossf/scorecard-action@v2.4.0
+      # v2.4.0 pulls its runner image from gcr.io/openssf/scorecard-action,
+      # which Google stopped hosting without GCP billing enabled on that
+      # project (unrelated to this repo). v2.4.4 publishes to ghcr.io instead.
+      - uses: ossf/scorecard-action@v2.4.4
         with:
           results_file: results.sarif
           results_format: sarif

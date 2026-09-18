@@ -149,6 +149,21 @@ def stub_provider() -> StubProvider:
 
 
 @pytest.fixture
+def stub_provider_class() -> type[StubProvider]:
+    """The class itself, for tests that need a non-default constructor call.
+
+    A test module reaching for ``from tests.conftest import StubProvider``
+    only works when the repository root happens to be on ``sys.path`` — true
+    under ``python -m pytest`` (which prepends the current directory), false
+    under the ``pytest`` console script CI invokes, where it fails with
+    ``ModuleNotFoundError: No module named 'tests'``. Fixture injection
+    sidesteps the question entirely: it works the same way regardless of how
+    pytest was launched.
+    """
+    return StubProvider
+
+
+@pytest.fixture
 def client(settings: Settings, data_dir: Path) -> Iterator[Any]:
     """A TestClient over a fully wired app with isolated storage."""
     from fastapi.testclient import TestClient

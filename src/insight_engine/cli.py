@@ -310,11 +310,35 @@ def cmd_doctor(args: argparse.Namespace) -> int:
 # --------------------------------------------------------------------------- #
 # Parser
 # --------------------------------------------------------------------------- #
+def _common_flags() -> argparse.ArgumentParser:
+    """Flags accepted both before and after the subcommand.
+
+    argparse hands a subparser everything following the subcommand name, so a
+    flag declared only on the top-level parser cannot appear after ``run``,
+    ``serve``, and so on — ``insight-engine run spec.yaml --log-format text``
+    would fail with "unrecognized arguments", which is exactly how a user
+    types it and exactly how this project's own Makefile and CI workflow
+    called it. Declaring the flags once here and attaching the result as
+    ``parents=`` to the top parser *and* every subparser accepts either
+    ordering; whichever parser actually consumes the flag sets the same
+    ``dest``, so there is nothing to reconcile afterwards.
+    """
+    common = argparse.ArgumentParser(add_help=False)
+    common.add_argument("--log-level", default=None, help="DEBUG, INFO, WARNING, ERROR")
+    common.add_argument(
+        "--log-format", default="text", choices=["text", "json"], help="Log output format"
+    )
+    return common
+
+
 def build_parser() -> argparse.ArgumentParser:
+    common = _common_flags()
+
     parser = argparse.ArgumentParser(
         prog="insight-engine",
         description="Turn period-over-period metric movements into ranked, explainable insights.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
+        parents=[common],
         epilog=(
             "Examples:\n"
             "  insight-engine run examples/configs/marketing-csv.yaml\n"
@@ -324,14 +348,10 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument("--version", action="version", version=f"insight-engine {__version__}")
-    parser.add_argument("--log-level", default=None, help="DEBUG, INFO, WARNING, ERROR")
-    parser.add_argument(
-        "--log-format", default="text", choices=["text", "json"], help="Log output format"
-    )
 
     sub = parser.add_subparsers(dest="command", required=True)
 
-    run = sub.add_parser("run", help="Run an analysis and generate a report")
+    run = sub.add_parser("run", help="Run an analysis and generate a report", parents=[common])
     run.add_argument("spec", help="Path to the specification (YAML or JSON)")
     run.add_argument("--base-path", help="Directory relative data paths resolve against")
     run.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
@@ -341,17 +361,19 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("-q", "--quiet", action="store_true", help="Suppress progress output")
     run.set_defaults(func=cmd_run)
 
-    validate = sub.add_parser("validate", help="Validate a specification")
+    validate = sub.add_parser("validate", help="Validate a specification", parents=[common])
     validate.add_argument("spec")
     validate.set_defaults(func=cmd_validate)
 
-    profile = sub.add_parser("profile", help="Infer column roles for a delimited file")
+    profile = sub.add_parser(
+        "profile", help="Infer column roles for a delimited file", parents=[common]
+    )
     profile.add_argument("file")
     profile.add_argument("--delimiter", help="Override delimiter detection")
     profile.add_argument("--json", action="store_true")
     profile.set_defaults(func=cmd_profile)
 
-    serve = sub.add_parser("serve", help="Run the HTTP API and UI")
+    serve = sub.add_parser("serve", help="Run the HTTP API and UI", parents=[common])
     serve.add_argument("--host")
     serve.add_argument("--port", type=int)
     serve.add_argument(
@@ -359,16 +381,16 @@ def build_parser() -> argparse.ArgumentParser:
     )
     serve.set_defaults(func=cmd_serve)
 
-    schema = sub.add_parser("schema", help="Emit the specification JSON Schema")
+    schema = sub.add_parser("schema", help="Emit the specification JSON Schema", parents=[common])
     schema.add_argument("-o", "--output", help="Write to this file instead of stdout")
     schema.set_defaults(func=cmd_schema)
 
-    sub.add_parser("purge", help="Delete expired sessions and artifacts").set_defaults(
-        func=cmd_purge
-    )
-    sub.add_parser("doctor", help="Report the effective configuration").set_defaults(
-        func=cmd_doctor
-    )
+    sub.add_parser(
+        "purge", help="Delete expired sessions and artifacts", parents=[common]
+    ).set_defaults(func=cmd_purge)
+    sub.add_parser(
+        "doctor", help="Report the effective configuration", parents=[common]
+    ).set_defaults(func=cmd_doctor)
 
     return parser
 
